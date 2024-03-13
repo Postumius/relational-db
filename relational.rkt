@@ -17,7 +17,13 @@
  foreign-key)
 
 (struct/lens Db (rels)
-             #:transparent)
+             #:transparent
+             #| #:methods gen:custom-write
+                [(define (write-proc db out mode)
+                   (for ([rel (Db-rels db)])
+                     (displayln (car rel) out)
+                     (display (Rel-table (cdr rel)) out)
+                  (newline out)))] |#)
 
 (struct/lens Rel (table rules)
              #:transparent)
@@ -26,6 +32,12 @@
   (lens-compose
    (assoc-lens rel-name)
    Db-rels-lens))
+
+(define/f (query-table name db)
+  (view-curried (lens-compose
+                 Rel-table-lens
+                 (Db-rel-lens name))
+                db))
 
 (struct/lens Constraint (name insert delete alter))
 
@@ -68,32 +80,61 @@
 
 (define things
   (make-Table
-   '("item" "description" "location" "hp")
+   '("item" "description" "location")
    '("item")
-   '(("living room" "the room that you live in" #f 10)
-     ("basket" "a woven container" "living room" 5)
-     ("table" "a raised surface for putting things on" "living room" 7)
-     ("drum" "you beat it to make rhythms" "basket" 1)
-     ("harmonica" "a mouth organ" "basket" 2)
-     ("rattle" "shake it, baby" "basket" 2))))
+   '(("space" "the player shouldn't ever encounter this object" "space")
+     ("living room" "the room that you live in" "space")
+     ("player" "It's meeee!" "living room")
+     ("couch" "it's like a long and soft chair" "living room")
+     ("basket" "a woven container" "living room")
+     ("drum" "you beat it to make rhythms" "basket")
+     ("harmonica" "a mouth organ" "basket")
+     ("rattle" "shake it, baby" "basket")
+     ("dining room" "the room for dining" "space")
+     ("table" "a raised surface for putting things on" "living room")
+     ("bathroom" "It's not just for bathing!" "space")
+     ("toilet" "where the real work gets done" "bathroom"))))
 
 (define containers
   (make-Table
    '("item" "capacity")
    '("item")
-   '(("living room" 1000)
-     ("basket" 10))))
+   '(("space" 'infinite)
+     ("living room" 1000)
+     ("basket" 10)
+     ("dining room" 1000)
+     ("bathroom" 1000))))
+
+(define leads-to
+  (make-Table
+   '("from" "to")
+   '("from" "to")
+   '(("living room" "dining room")
+     ("living room" "bathroom")
+     ("bathroom" "living room"))))
 
 (define db
-  (Db
-   (list
-    (cons "things"
-          (Rel things
-               (list
-                (foreign-key '("location")
-                             "containers"))))
-    (cons "containers"
-          (Rel containers
-               (list
-                (foreign-key '("item")
-                             "things")))))))
+  ($ (Db
+      (list
+       (cons "things"
+             (Rel things
+                  (list
+                   (foreign-key '("location")
+                                "containers"))))
+       (cons "containers"
+             (Rel containers
+                  (list
+                   (foreign-key '("item")
+                                "things"))))
+       (cons "leads-to"
+             (Rel leads-to
+                  (list
+                   (foreign-key '("from") "containers")
+                   (foreign-key '("to") "containers"))))))
+     (insert-into "things"
+                  (make-row ("item" "table")
+                            ("description" "a raised surface for putting things on")
+                            ("location" "dining room")))
+     (insert-into "leads-to"
+                  (make-row ("from" "dining room")
+                            ("to" "living room")))))

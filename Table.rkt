@@ -33,17 +33,48 @@
       0
       (add1 (get-pos val (cdr ls)))))
 
+(define (display-table table out mode)
+  (define (pad-col col)
+    (define string-col
+      (map (curry format "~a") col))
+    (define max-length
+      (apply max
+             (map string-length string-col)))
+    (map (λ (str)
+           (define length-difference
+             (- max-length (string-length str)))
+           (format "~a~a"
+                   str
+                   (make-string length-difference
+                                #\space)))
+         string-col))
+  (define data
+    ($ table
+       Table-cols
+       stream-rest
+       (map/f pad-col)
+       transpose
+       (map/f (intersperse "|"))))
+  (define header (stream-first data))
+  (newline out)
+  (displayln header out)
+  (displayln (make-string (string-length (format "~a" header))
+                          #\-)
+             out)
+  (for ([row (stream-rest data)])
+    (displayln row out)))
 
 (struct/lens Table (header primary-key index next-i rowhash)
-             #:transparent)
+             #:methods gen:custom-write
+             [(define write-proc display-table)])
 
-(define-syntax-rule
-  (make-row (col-name val) ...)
-  (list (cons col-name val) ...))
+  (define-syntax-rule
+    (make-row (col-name val) ...)
+    (list (cons col-name val) ...))
 
-(define/f (make-Table header key row-list)
-  (define rowhash
-    ($ (map/f cons
+  (define/f (make-Table header key row-list)
+    (define rowhash
+      ($ (map/f cons
               (in-naturals)
               row-list)
        stream->list

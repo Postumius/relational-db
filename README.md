@@ -3,6 +3,10 @@
 
 My intended use case for this is as a component of a text-game engine that I'm working on. Doesn't save the database to the disk or anything, this is an in-memory thing only. Also, the database is immutable; even functions like ```insert-into``` just return a new DB without modifying the old one.
 
+**Dependencies:**
+- [lens](https://github.com/jackfirth/lens)
+- [relation](https://github.com/countvajhula/relation)
+
 ## Querying Example
 Let's say we have the following tables, which represent the worldstate of a text-based game, the type where the player goes from room to room, picks up objects, and solves puzzles. 
 

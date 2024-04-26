@@ -1,4 +1,6 @@
 # relational-db
+
+deprecated now that I'm refactoring in Haskell! Here it is: [Relational](https://github.com/Postumius/Relational/)
 (small) relational databases as Racket data structures
 
 My intended use case for this is as a component of a text-game engine that I'm working on. Doesn't save the database to the disk or anything, this is an in-memory thing only. Also, the database is immutable; even functions like ```insert-into``` just return a new DB without modifying the old one.
